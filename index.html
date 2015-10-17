@@ -30,6 +30,7 @@
         syncButton = document.getElementById('sync-button');
         if (authResult && !authResult.error) {
             getFile("1LmRDifF_anMSj7ZlZm_SeC8ZVDEuuKNa1-wa36PbEuI", function() {
+                syncButton.value = 'Data loaded. Click to close.';
                 syncButton.onclick = function() {
                     function getQueryParam(variable, defaultValue) {
                         var query = location.search.substring(1);
@@ -42,6 +43,8 @@
                         }
                         return defaultValue || false;
                     }
+
+                    console.log('data', JSON.stringify(loadouts));
 
                     // Set the return URL depending on the runtime environment
                     document.location = getQueryParam('return_to', 'pebblejs://close#') +
@@ -68,12 +71,13 @@
                 'fileId': fileId,
                 'alt': 'media'
             }).execute(function(data) {
-                if(resp.code !== 401) {
+                if(data.code !== 401) {
                     console.log('loaded from google drive.', data);
                     loadouts = [];
-                    data.items.forEach(function(loadout) {
+                    data['loadouts-v3.0'].forEach(function(loadout) {
                        loadouts.push(data[loadout]);
                     });
+                    callback();
                 }
             });
         });
