@@ -75,7 +75,7 @@
                     console.log('loaded from google drive.', data);
                     loadouts = [];
                     data['loadouts-v3.0'].forEach(function(loadout) {
-                       loadouts.push(data[loadout]);
+                       loadouts.push(data[loadout].name);
                     });
                     callback();
                 }
