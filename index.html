@@ -19,7 +19,7 @@
         'scope': 'https://www.googleapis.com/auth/drive.appfolder',
         'immediate': true
     },
-    syncButton = document.getElementById('sync-button'),
+    syncButton = null,
     loadouts = [];
 
     function init() {
@@ -27,6 +27,7 @@
     }
 
     function handleAuthResult(authResult) {
+        syncButton = document.getElementById('sync-button');
         if (authResult && !authResult.error) {
             getFile("1LmRDifF_anMSj7ZlZm_SeC8ZVDEuuKNa1-wa36PbEuI", function() {
                 syncButton.onclick = function() {
