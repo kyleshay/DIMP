@@ -1,248 +1,90 @@
 <!DOCTYPE html>
-<html>
-  <head>
-  <title>Slate Example Configuration</title>
-  <link rel='stylesheet' type='text/css' href='css/slate.min.css'>
-  <script src='js/slate.min.js'></script>
-  <style>
-  .title {
-    padding: 15px 10px;
-    text-transform: uppercase;
-    font-family: 'PT Sans', sans-serif;
-    font-size: 1.2em;
-    font-weight: 500;
-    color: #888888;
-    text-align: center;
-  }
-  </style>
+<html><head>
+    <title>Slate Example Configuration</title>
+    <link rel='stylesheet' type='text/css' href='css/slate.min.css'>
+    <style>
+    .title {
+        padding: 15px 10px;
+        text-transform: uppercase;
+        font-family: 'PT Sans', sans-serif;
+        font-size: 1.2em;
+        font-weight: 500;
+        color: #888888;
+        text-align: center;
+    }
+    </style>
+    <script type="text/javascript">
+    var drive = {
+        'client_id': '22022180893-raop2mu1d7gih97t5da9vj26quqva9dc.apps.googleusercontent.com',
+        'scope': 'https://www.googleapis.com/auth/drive.appfolder',
+        'immediate': true
+    },
+    syncButton = document.getElementById('sync-button'),
+    loadouts = [];
 
+    function init() {
+        gapi.auth.authorize(drive, handleAuthResult);
+    }
 
-     <script type="text/javascript">
-      var CLIENT_ID = '22022180893-raop2mu1d7gih97t5da9vj26quqva9dc.apps.googleusercontent.com';
-      var SCOPES = 'https://www.googleapis.com/auth/drive.appfolder';
-
-      /**
-       * Called when the client library is loaded to start the auth flow.
-       */
-      function handleClientLoad() {
-        window.setTimeout(checkAuth, 1);
-      }
-
-      /**
-       * Check if the current user has authorized the application.
-       */
-      function checkAuth() {
-        gapi.auth.authorize(
-            {'client_id': CLIENT_ID, 'scope': SCOPES, 'immediate': true},
-            handleAuthResult);
-      }
-
-      /**
-       * Called when authorization server replies.
-       *
-       * @param {Object} authResult Authorization result.
-       */
-      function handleAuthResult(authResult) {
-        var authButton = document.getElementById('authorizeButton');
-        var doitButton = document.getElementById('doitButton');
-        authButton.style.display = 'none';
-        doitButton.style.display = 'none';
+    function handleAuthResult(authResult) {
         if (authResult && !authResult.error) {
-          // Access token has been successfully retrieved, requests can be sent to the API.
-          doitButton.style.display = 'block';
-          doitButton.onclick = uploadFile;
+            getFile("1LmRDifF_anMSj7ZlZm_SeC8ZVDEuuKNa1-wa36PbEuI", function() {
+                syncButton.onclick = function() {
+                    function getQueryParam(variable, defaultValue) {
+                        var query = location.search.substring(1);
+                        var vars = query.split('&');
+                        for (var i = 0; i < vars.length; i++) {
+                            var pair = vars[i].split('=');
+                            if (pair[0] === variable) {
+                                return decodeURIComponent(pair[1]);
+                            }
+                        }
+                        return defaultValue || false;
+                    }
+
+                    // Set the return URL depending on the runtime environment
+                    document.location = getQueryParam('return_to', 'pebblejs://close#') +
+                                        encodeURIComponent(JSON.stringify(loadouts));
+                };
+            });
+
+            // Access token has been successfully retrieved, requests can be sent to the API.
+            syncButton.value = 'Loading data from drive';
+            syncButton.onclick = null;
         } else {
-          // No access token could be retrieved, show the button to start the authorization flow.
-          authButton.style.display = 'block';
-          authButton.onclick = function() {
-              gapi.auth.authorize(
-                  {'client_id': CLIENT_ID, 'scope': SCOPES, 'immediate': false},
-                  handleAuthResult);
-          };
+            // No access token could be retrieved, show the button to start the authorization flow.
+            drive.immediate = false;
+            syncButton.value = 'Sync with Google Drive';
+            syncButton.onclick = function() {
+                gapi.auth.authorize(drive, handleAuthResult);
+            };
         }
-      }
+    }
 
-      /**
-       * Start the file upload.
-       *
-       * @param {Object} evt Arguments from the file selector.
-       */
-      function uploadFile(evt) {
+    function getFile(fileId, callback) {
         gapi.client.load('drive', 'v2', function() {
-//          insertFileTest();
-          gapi.client.drive.files.list().execute(function(arg) {
-            console.log(arg);
-            arg.items.forEach(function(val, k) {
-              console.log(val.id);
-            })
-          });
+            gapi.client.drive.files.get({
+                'fileId': fileId,
+                'alt': 'media'
+            }).execute(function(data) {
+                if(resp.code !== 401) {
+                    console.log('loaded from google drive.', data);
+                    loadouts = [];
+                    data.items.forEach(function(loadout) {
+                       loadouts.push(data[loadout]);
+                    });
+                }
+            });
         });
-      }
-
-      function insertFileTest() {
-        gapi.client.request({
-          'path': '/drive/v2/files',
-          'method': 'POST',
-          'body': {
-            'title': 'DIM-' + id,
-            'mimeType': 'application/json',
-            'parents': [{'id': 'appfolder'}]
-          }
-        }).execute(function(arg) {
-          console.log(arg);
-        });
-      }
-
-      /**
-       * Insert new file.
-       */
-      function insertFile(id) {
-        const boundary = '-------314159265358979323846264';
-        const delimiter = "\r\n--" + boundary + "\r\n";
-        const close_delim = "\r\n--" + boundary + "--";
-        var appState = {
-          number: 12,
-          text: 'hello'
-        };
-        var fileName = id;
-        var contentType = 'application/json';
-        var metadata = {
-          'title': fileName,
-          'mimeType': contentType,
-          'parents': [{'id': 'appfolder'}]
-        };
-        var base64Data = btoa(JSON.stringify(appState));
-        var multipartRequestBody =
-            delimiter +
-            'Content-Type: application/json\r\n\r\n' +
-            JSON.stringify(metadata) +
-            delimiter +
-            'Content-Type: ' + contentType + '\r\n' +
-            'Content-Transfer-Encoding: base64\r\n' +
-            '\r\n' +
-            base64Data +
-            close_delim;
-        var request = gapi.client.request({
-            'path': '/upload/drive/v2/files',
-            'method': 'POST',
-            'params': {'uploadType': 'multipart'},
-            'headers': {
-              'Content-Type': 'multipart/mixed; boundary="' + boundary + '"'
-            },
-            'body': multipartRequestBody});
-        request.execute(function(arg) {
-          console.log(arg);
-        });
-      }
+    }
     </script>
-    <script type="text/javascript" src="https://apis.google.com/js/client.js?onload=handleClientLoad"></script>
-
-  </head>
-
-  <body>
+    <script type="text/javascript" src="https://apis.google.com/js/client.js?onload=init"></script>
+</head><body>
     <h1 class='title'>DIM Configuration</h1>
-
-    <div class='item-container'>
-      <div class='item-container-content'>
-        <div class='item'>
-          Use this configuration page to choose the settings you would like applied to this app.
+    <div class='item-container button-container'>
+        <input id='sync-button' type='button' class='item-button' value='Loading'>
+        <div class='item-container-footer'>
+            App must be synced with google drive to download loadouts.
         </div>
-      </div>
     </div>
-
-    <div class='item-container'>
-      <div class='item-container-header'>Sync with Google Drive</div>
-      <div class='item-container-content'>
-        <div class="button-container">
-          <input id="authorizeButton" type="button" class="item-button" value="SYNC">
-          <input id="doitButton" type="button" class="item-button" value="Do It">
-        </div>
-      </div>
-      <div class='item-container-footer'>
-        App must be synced with google drive to download loadouts.
-      </div>
-    </div>
-
-    <div class='item-container'>
-      <div class='item-container-header'>Customizability</div>
-      <div class='item-container-content'>
-        <label class='item'>
-          Background Color
-          <input id='background_color_picker' type='text' class='item-color item-color-sunny' value='#000000'>
-        </label>
-      </div>
-      <div class='item-container-footer'>
-        Choose the app's background color. Used if High Contrast Mode is not selected. Note: Only available on Basalt watches that support many colors.
-      </div>
-    </div>
-
-    <div class='item-container'>
-      <div class='item-container-header'>Accessibility</div>
-      <div class='item-container-content'>
-        <label class='item'>
-          High Contrast Mode
-          <input id='high_contrast_checkbox' type='checkbox' class='item-toggle'>
-        </label>
-      </div>
-      <div class='item-container-footer'>
-        This switches the app colors to a higher contrast set that promotes readability in low light.
-      </div>
-    </div>
-
-    <div class='item-container'>
-      <div class='button-container'>
-        <input id='submit_button' type='button' class='item-button' value='SUBMIT'>
-      </div>
-    </div>
-  </body>
-  <script>
-  function getConfigData() {
-    var backgroundColorPicker = document.getElementById('background_color_picker');
-    var highContrastCheckbox = document.getElementById('high_contrast_checkbox');
-
-    var options = {
-      'background_color': backgroundColorPicker.value,
-      'high_contrast': highContrastCheckbox.checked
-    };
-
-    // Save for next launch
-    localStorage['background_color'] = options['background_color'];
-    localStorage['high_contrast'] = options['high_contrast'];
-
-    console.log('Got options: ' + JSON.stringify(options));
-    return options;
-  }
-
-  function getQueryParam(variable, defaultValue) {
-    var query = location.search.substring(1);
-    var vars = query.split('&');
-    for (var i = 0; i < vars.length; i++) {
-      var pair = vars[i].split('=');
-      if (pair[0] === variable) {
-        return decodeURIComponent(pair[1]);
-      }
-    }
-    return defaultValue || false;
-  }
-
-  var submitButton = document.getElementById('submit_button');
-  submitButton.addEventListener('click', function() {
-    console.log('Submit');
-
-    // Set the return URL depending on the runtime environment
-    var return_to = getQueryParam('return_to', 'pebblejs://close#');
-    document.location = return_to + encodeURIComponent(JSON.stringify(getConfigData()));
-  });
-
-  (function() {
-    var backgroundColorPicker = document.getElementById('background_color_picker');
-    var highContrastCheckbox = document.getElementById('high_contrast_checkbox');
-
-    // Load any previously saved configuration, if available
-    if(localStorage['high_contrast']) {
-      highContrastCheckbox.checked = JSON.parse(localStorage['high_contrast']);
-      backgroundColorPicker.value = localStorage['background_color'];
-    }
-  })();
-  </script>
-</html>
+</body></html>
